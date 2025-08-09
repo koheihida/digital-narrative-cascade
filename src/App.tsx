@@ -235,7 +235,7 @@ function App() {
     lastTimeRef.current = currentTime
     
     characterSpawnRef.current += deltaTime
-    if (characterSpawnRef.current > 50) { // Reduced from 100 to 50 for more frequent spawning
+    if (characterSpawnRef.current > 25) { // Further reduced to 25 for even more frequent spawning
       spawnCharacter()
       characterSpawnRef.current = 0
     }
