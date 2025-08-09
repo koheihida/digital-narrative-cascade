@@ -9,6 +9,8 @@ interface Character {
   vx: number
   vy: number
   opacity: number
+  trail: { x: number; y: number; opacity: number }[]
+  age: number
 }
 
 interface Rock {
@@ -97,21 +99,41 @@ function App() {
           ...char,
           x: char.x + char.vx * deltaTime,
           y: char.y + char.vy * deltaTime,
-          vy: char.vy + 0.002 * deltaTime
+          vy: char.vy + 0.002 * deltaTime,
+          age: char.age + deltaTime
         }
+        
+        // Add turbulence for more natural flow
+        newChar.vx += (Math.random() - 0.5) * 0.0001 * deltaTime
+        
+        // Update trail
+        newChar.trail = [
+          { x: char.x, y: char.y, opacity: char.opacity },
+          ...char.trail.slice(0, 8)
+        ].map((point, index) => ({
+          ...point,
+          opacity: point.opacity * Math.pow(0.8, index)
+        }))
         
         for (const rock of rocks) {
           if (checkCollision(newChar, rock)) {
             newChar = deflectCharacter(newChar, rock)
+            // Clear trail on collision for dramatic effect
+            newChar.trail = []
           }
         }
         
-        if (newChar.y > canvas.height + 50) {
-          newChar.opacity = 0
+        // Fade out characters as they age or leave screen
+        if (newChar.y > canvas.height - 100) {
+          newChar.opacity = Math.max(0, newChar.opacity - 0.01 * deltaTime)
+        }
+        
+        if (newChar.age > 8000) {
+          newChar.opacity = Math.max(0, newChar.opacity - 0.005 * deltaTime)
         }
         
         return newChar
-      }).filter(char => char.opacity > 0 && char.y < canvas.height + 100)
+      }).filter(char => char.opacity > 0.01 && char.y < canvas.height + 100)
     })
   }, [rocks, checkCollision, deflectCharacter])
 
@@ -129,7 +151,9 @@ function App() {
       y: -20,
       vx: (Math.random() - 0.5) * 0.1,
       vy: 0.5 + Math.random() * 0.3,
-      opacity: 1
+      opacity: 1,
+      trail: [],
+      age: 0
     }
     
     setCharacters(prev => [...prev, newCharacter])
@@ -140,28 +164,71 @@ function App() {
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
     
-    ctx.fillStyle = 'black'
+    // Create gradient background for waterfall effect
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+    gradient.addColorStop(0, 'rgb(5, 5, 15)')
+    gradient.addColorStop(0.3, 'rgb(0, 0, 0)')
+    gradient.addColorStop(1, 'rgb(0, 0, 5)')
+    ctx.fillStyle = gradient
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     
+    // Add waterfall mist effect
+    const mistGradient = ctx.createRadialGradient(canvas.width/2, canvas.height*0.8, 0, canvas.width/2, canvas.height*0.8, canvas.width*0.6)
+    mistGradient.addColorStop(0, 'rgba(255, 255, 255, 0.03)')
+    mistGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    ctx.fillStyle = mistGradient
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    
+    // Render rocks with enhanced waterfall styling
     rocks.forEach(rock => {
-      ctx.fillStyle = 'rgba(128, 128, 128, 0.8)'
+      const rockGradient = ctx.createRadialGradient(rock.x - rock.radius*0.3, rock.y - rock.radius*0.3, 0, rock.x, rock.y, rock.radius)
+      rockGradient.addColorStop(0, 'rgba(180, 180, 190, 0.9)')
+      rockGradient.addColorStop(0.7, 'rgba(120, 120, 130, 0.8)')
+      rockGradient.addColorStop(1, 'rgba(80, 80, 90, 0.7)')
+      
+      ctx.fillStyle = rockGradient
       ctx.beginPath()
       ctx.arc(rock.x, rock.y, rock.radius, 0, Math.PI * 2)
       ctx.fill()
       
-      ctx.strokeStyle = 'rgba(160, 160, 160, 0.6)'
-      ctx.lineWidth = 2
-      ctx.stroke()
+      // Add water splash effect around rocks
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+      ctx.beginPath()
+      ctx.arc(rock.x, rock.y, rock.radius + 5, 0, Math.PI * 2)
+      ctx.fill()
     })
     
-    ctx.font = '16px "Noto Serif JP", serif'
+    ctx.font = '18px "Noto Serif JP", serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     
+    // Render character trails first
     characters.forEach(char => {
+      char.trail.forEach((point, index) => {
+        if (point.opacity > 0.01) {
+          ctx.fillStyle = `rgba(200, 230, 255, ${point.opacity * 0.3})`
+          ctx.fillText(char.char, point.x, point.y)
+        }
+      })
+    })
+    
+    // Render main characters with glow effect
+    characters.forEach(char => {
+      const glowIntensity = Math.sin(char.age * 0.003) * 0.2 + 0.8
+      
+      // Outer glow
+      ctx.shadowColor = 'rgba(180, 220, 255, 0.6)'
+      ctx.shadowBlur = 8
+      ctx.fillStyle = `rgba(220, 240, 255, ${char.opacity * glowIntensity})`
+      ctx.fillText(char.char, char.x, char.y)
+      
+      // Inner character
+      ctx.shadowBlur = 0
       ctx.fillStyle = `rgba(255, 255, 255, ${char.opacity})`
       ctx.fillText(char.char, char.x, char.y)
     })
+    
+    ctx.shadowBlur = 0
   }, [characters, rocks])
 
   const animate = useCallback((currentTime: number) => {
@@ -169,7 +236,7 @@ function App() {
     lastTimeRef.current = currentTime
     
     characterSpawnRef.current += deltaTime
-    if (characterSpawnRef.current > 150) {
+    if (characterSpawnRef.current > 100) {
       spawnCharacter()
       characterSpawnRef.current = 0
     }
@@ -235,11 +302,11 @@ function App() {
       <div className="absolute top-4 left-4 z-10 flex gap-2">
         <button
           onClick={clearRocks}
-          className="px-3 py-1 bg-muted/80 text-muted-foreground rounded text-sm hover:bg-muted transition-colors"
+          className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm hover:bg-black/80 transition-colors backdrop-blur-sm border border-white/20"
         >
           岩をクリア
         </button>
-        <div className="px-3 py-1 bg-muted/80 text-muted-foreground rounded text-sm">
+        <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
           クリックして岩を配置
         </div>
       </div>
