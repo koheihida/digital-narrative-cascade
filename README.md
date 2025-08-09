@@ -1,23 +1,240 @@
-# ✨ Welcome to Your Spark Template!
-You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
+# 日本語文字の滝 - Japanese Text Waterfall
 
-This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
+太宰治の文学作品から文字が滝のように流れ落ちる、美しく詩的なインタラクティブWebアプリケーションです。
 
-🚀 What's Inside?
-- A clean, minimal Spark environment
-- Pre-configured for local development
-- Ready to scale with your ideas
-  
-🧠 What Can You Do?
+![Demo](./demo.gif)
 
-Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
+> アニメーション付きのデモです。太宰治の文字が滝のように流れ、クリックで配置した岩に当たると自然に迂回する様子をご覧ください。
 
-🧹 Just Exploring?
-No problem! If you were just checking things out and don’t need to keep this code:
+## ✨ 特徴
 
-- Simply delete your Spark.
-- Everything will be cleaned up — no traces left behind.
+- 🌊 **自然な流れ**: 太宰治の文学作品から抽出された日本語文字が、まるで水の流れのように自然に画面を流れ落ちます
+- 🪨 **インタラクティブな岩**: クリックして岩を配置し、文字の流れを変化させることができます
+- 💧 **物理演算**: リアルな重力と衝突判定により、文字が岩に当たると水のように迂回して流れます
+- 🌪️ **溢れ効果**: 文字が一箇所に溜まりすぎると、水が溢れるように自然に下へ流れていきます
+- 📚 **文学的体験**: 太宰治の名作から実際のテキストを取得し、文字ひとつひとつに文学的な意味を込めています
 
-📄 License For Spark Template Resources 
+## 🎮 使い方
 
-The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+1. **岩の配置**: 画面上の任意の場所をクリックして岩を配置
+2. **文字の観察**: 文字が岩にぶつかると、自然に流れを変えて迂回します
+3. **溢れ現象**: 文字が溜まりすぎると、水のように溢れて流れ落ちます
+4. **岩のクリア**: 左上の「岩をクリア」ボタンで全ての岩を削除
+
+## 🛠️ 技術仕様
+
+### フロントエンド
+- **React 18** - モダンなUI構築
+- **TypeScript** - 型安全な開発
+- **Canvas API** - 高性能な2Dグラフィックス
+- **Tailwind CSS** - 美しいスタイリング
+- **Vite** - 高速な開発環境
+
+### 物理エンジン
+- **重力システム**: リアルな落下物理
+- **衝突判定**: 円形ベースの効率的な判定
+- **反射計算**: 物理的に正確な反射角度
+- **乱流効果**: 自然な水の流れを再現
+
+### データソース
+- **Bungomail API**: 太宰治の作品データを動的取得
+- **フォールバック**: API障害時の安全な代替テキスト
+- **エラーハンドリング**: 堅牢な接続管理
+
+## 🚀 セットアップ
+
+### 必要な環境
+- Node.js 18以上
+- npm または yarn
+- モダンなWebブラウザ（Chrome, Firefox, Safari, Edge）
+
+### インストール手順
+
+```bash
+# リポジトリのクローン
+git clone <repository-url>
+cd japanese-text-waterfall
+
+# 依存関係のインストール
+npm install
+
+# 開発サーバーの起動
+npm run dev
+```
+
+アプリケーションは `http://localhost:5173` で利用できます。
+
+### 本番環境へのデプロイ
+
+```bash
+# 本番用ビルド
+npm run build
+
+# ビルド結果のプレビュー（オプション）
+npm run preview
+```
+
+生成された `dist/` フォルダを任意の静的ホスティングサービス（Netlify、Vercel、GitHub Pages等）にデプロイできます。
+
+## 🎨 デザインコンセプト
+
+### 視覚的アプローチ
+- **ミニマルな美学**: 黒い背景に白い文字のシンプルな配色
+- **和の美意識**: 日本の書道と水墨画からインスパイア
+- **自然な動き**: 実際の水の流れを物理的に再現
+
+### フォントとタイポグラフィ
+- **Noto Serif JP**: 日本語に最適化された美しいセリフフォント
+- **適切なサイズ**: 可読性と美観のバランス
+- **滑らかなアニメーション**: 60FPSでの流体的な動作
+
+## 🧪 技術的詳細
+
+### 物理演算パラメータ
+```typescript
+const PHYSICS_CONFIG = {
+  GRAVITY: 0.0002,              // 重力加速度
+  MIN_VELOCITY: 0.15,           // 最小落下速度
+  SPAWN_INTERVAL: 40,           // 文字生成間隔 (ms)
+  MAX_NEARBY_CHARS: 8,          // 溢れ判定の文字数
+  OVERFLOW_VELOCITY: 0.6,       // 溢れ時の速度
+  TURBULENCE: 0.0001,          // 乱流効果
+  REFLECTION_DAMPING: 0.8       // 反射減衰率
+}
+```
+
+### パフォーマンス最適化
+- **メモ化**: 重い計算結果のキャッシュ
+- **効率的な描画**: 不要な文字の自動削除
+- **バッチ処理**: まとめて行う物理計算
+- **軌跡管理**: メモリ効率的な軌跡描画
+- **60FPS**: なめらかなアニメーション
+- **自動メモリ管理**: 古い文字の自動削除
+
+### ブラウザ対応
+- ✅ Chrome 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+
+- ✅ Edge 90+
+- ⚠️ モバイルブラウザ（一部機能制限あり）
+
+### API依存性
+- **Bungomail API**: 太宰治の作品データを取得
+- **フォールバック機能**: API障害時も動作継続
+- **自動再試行**: 接続エラーの自動復旧
+
+## 📁 プロジェクト構造
+
+```
+/
+├── README.md           # このファイル（プロジェクト説明）
+├── demo.gif           # アプリケーションのデモアニメーション
+├── index.html         # HTMLエントリーポイント
+├── package.json       # 依存関係とスクリプト
+├── src/
+│   ├── App.tsx              # メインアプリケーション
+│   ├── types.ts             # TypeScript型定義
+│   ├── utils/
+│   │   ├── physics.ts       # 物理演算ロジック
+│   │   └── rendering.ts     # Canvas描画ロジック
+│   ├── index.css           # グローバルスタイル
+│   ├── main.tsx           # Reactエントリーポイント
+│   └── main.css           # システムCSS（編集不可）
+└── vite.config.ts     # Vite設定
+```
+
+## 🔧 開発
+
+### スクリプト
+```bash
+npm run dev          # 開発サーバー起動
+npm run build        # 本番ビルド
+npm run preview      # ビルド結果のプレビュー
+npm run lint         # コードの静的解析
+```
+
+### 拡張方法
+1. **新しい作家の追加**: `fetchDazaiTexts`関数のAPI URLを変更
+2. **物理パラメータの調整**: `PHYSICS_CONFIG`の値を変更
+3. **視覚効果の追加**: `rendering.ts`に新しい描画関数を追加
+
+## 🔧 トラブルシューティング
+
+### よくある問題と解決方法
+
+**Q: 文字が流れない / 真っ黒な画面**
+```bash
+# ブラウザのコンソールを確認
+F12 > Console タブ
+# APIエラーの場合は自動再試行されます
+```
+
+**Q: 岩をクリックしても配置されない**
+- Canvas要素がクリックイベントを受け取れているか確認
+- ブラウザの開発者ツールでJavaScriptエラーを確認
+
+**Q: 動作が重い / フレームレートが低い**
+```bash
+# パフォーマンス設定の調整
+# src/utils/physics.ts の PHYSICS_CONFIG を編集
+```
+
+**Q: API接続エラー**
+- インターネット接続を確認
+- Bungomail APIの稼働状況を確認
+- フォールバックテキストで動作は継続されます
+
+**Q: モバイルで正常に動作しない**
+- タッチイベントとマウスイベントの両方に対応
+- 画面サイズによる自動調整機能
+
+### 開発時のデバッグ
+
+```javascript
+// ブラウザのコンソールで物理パラメータを確認
+console.log('現在の文字数:', characters.length)
+console.log('岩の数:', rocks.length)
+console.log('FPS:', Math.round(1000 / deltaTime))
+```
+
+## 🎭 芸術的意図
+
+このアプリケーションは、デジタル技術と古典文学の融合を表現しています。太宰治の文字が物理法則に従って流れる様子は、時間の流れと文学の永続性を象徴しています。
+
+ユーザーが配置する岩は、人生における障害や選択を表し、文字がそれらを迂回して流れる様子は、文学が困難を乗り越えて人々に届く力を表現しています。
+
+## 🤝 コントリビューション
+
+プロジェクトへの貢献を歓迎します！
+
+### 貢献方法
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### 開発ガイドライン
+- コードは日本語でコメントを記述
+- TypeScriptの型安全性を維持
+- パフォーマンスを考慮した実装
+- 文学的な美しさを大切にする
+
+## 📝 ライセンス
+
+MIT License - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
+
+このプロジェクトは教育および芸術的目的で作成されており、太宰治の著作権を尊重しています。
+
+## 🙏 謝辞
+
+- **太宰治** - 不朽の名作群に深い敬意を表します
+- **[Bungomail API](https://api.bungomail.com/)** - 文学データの提供
+- **React コミュニティ** - 素晴らしいライブラリとツールの提供
+- **オープンソースコミュニティ** - TypeScript、Vite、Tailwind CSS等の開発
+
+---
+
+*「人間失格の序章。私は、その男の写真を三葉、見たことがある。」*
+
+文字が流れ、物語が始まります。クリックして、あなた自身の物語を創造してください。

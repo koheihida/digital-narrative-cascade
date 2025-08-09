@@ -1,0 +1,97 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="800" height="600" fill="#000000"/>
+  
+  <!-- タイトル -->
+  <text x="400" y="40" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">
+    日本語文字の滝 - Japanese Text Waterfall
+  </text>
+  
+  <!-- アプリケーション画面のフレーム -->
+  <rect x="50" y="70" width="700" height="450" fill="#111111" stroke="#333333" stroke-width="2" rx="8"/>
+  
+  <!-- 操作パネル -->
+  <rect x="70" y="90" width="120" height="30" fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.2)" stroke-width="1" rx="6"/>
+  <text x="130" y="109" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">岩をクリア</text>
+  
+  <rect x="200" y="90" width="180" height="30" fill="rgba(0,0,0,0.7)" stroke="rgba(255,255,255,0.2)" stroke-width="1" rx="6"/>
+  <text x="290" y="109" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">クリックして岩を配置</text>
+  
+  <!-- 滝の中央ガイドライン -->
+  <line x1="350" y1="130" x2="350" y2="500" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="450" y1="130" x2="450" y2="500" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="5,5"/>
+  
+  <!-- 落下する文字 (複数の軌跡) -->
+  <g font-family="serif" font-size="16" fill="white">
+    <!-- 第1列の文字 -->
+    <text x="360" y="150" opacity="1.0">人</text>
+    <text x="365" y="180" opacity="0.9">間</text>
+    <text x="358" y="210" opacity="0.8">失</text>
+    <text x="362" y="240" opacity="0.7">格</text>
+    <text x="359" y="270" opacity="0.6">の</text>
+    <text x="363" y="300" opacity="0.5">序</text>
+    <text x="361" y="330" opacity="0.4">章</text>
+    
+    <!-- 第2列の文字 -->
+    <text x="400" y="140" opacity="1.0">私</text>
+    <text x="398" y="170" opacity="0.9">は</text>
+    <text x="402" y="200" opacity="0.8">そ</text>
+    <text x="399" y="230" opacity="0.7">の</text>
+    <text x="401" y="260" opacity="0.6">男</text>
+    <text x="397" y="290" opacity="0.5">の</text>
+    <text x="403" y="320" opacity="0.4">写</text>
+    <text x="400" y="350" opacity="0.3">真</text>
+    
+    <!-- 第3列の文字 -->
+    <text x="430" y="160" opacity="1.0">を</text>
+    <text x="432" y="190" opacity="0.9">三</text>
+    <text x="428" y="220" opacity="0.8">葉</text>
+    <text x="431" y="250" opacity="0.7">見</text>
+    <text x="429" y="280" opacity="0.6">た</text>
+    <text x="433" y="310" opacity="0.5">こ</text>
+    <text x="430" y="340" opacity="0.4">と</text>
+  </g>
+  
+  <!-- 岩の配置例 -->
+  <circle cx="320" cy="280" r="25" fill="#000000" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <circle cx="480" cy="220" r="30" fill="#000000" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <circle cx="380" cy="380" r="20" fill="#000000" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  
+  <!-- 岩による文字の迂回を示す軌跡 -->
+  <path d="M 360 260 Q 340 280 320 300 Q 300 320 310 340" 
+        stroke="rgba(255,255,255,0.2)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+  <path d="M 430 200 Q 460 220 480 240 Q 500 260 520 280" 
+        stroke="rgba(255,255,255,0.2)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+  
+  <!-- 溢れ効果の表現 -->
+  <g font-family="serif" font-size="12" fill="white" opacity="0.6">
+    <text x="295" y="320">が</text>
+    <text x="298" y="340">流</text>
+    <text x="302" y="360">れ</text>
+    <text x="305" y="380">て</text>
+    <text x="308" y="400">い</text>
+    <text x="311" y="420">く</text>
+  </g>
+  
+  <!-- 説明テキスト -->
+  <g font-family="Arial, sans-serif" font-size="12" fill="white">
+    <!-- 機能説明 -->
+    <text x="70" y="550">✨ 太宰治の作品から文字が滝のように流れ落ちます</text>
+    <text x="70" y="570">🪨 クリックして岩を配置し、文字の流れを変化させます</text>
+    <text x="70" y="590">💧 文字が溜まりすぎると水のように溢れて流れます</text>
+    
+    <!-- 右側の技術情報 -->
+    <text x="450" y="550" font-size="10" fill="#888888">React + TypeScript + Canvas</text>
+    <text x="450" y="565" font-size="10" fill="#888888">物理演算とリアルタイム描画</text>
+    <text x="450" y="580" font-size="10" fill="#888888">Bungomail API連携</text>
+  </g>
+  
+  <!-- マウスカーソルの表現 -->
+  <g transform="translate(380, 180)">
+    <path d="M0,0 L0,16 L4,12 L8,12 L0,0" fill="white" opacity="0.8"/>
+    <circle cx="0" cy="0" r="20" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="2,2">
+      <animate attributeName="r" values="15;25;15" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-opacity" values="0.5;0.1;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>
