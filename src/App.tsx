@@ -11,6 +11,7 @@ interface Character {
   opacity: number
   trail: { x: number; y: number; opacity: number }[]
   age: number
+  isOverflowing: boolean
 }
 
 interface Rock {
@@ -20,39 +21,75 @@ interface Rock {
   radius: number
 }
 
-const LITERARY_TEXTS = [
-  "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。",
-  "国境の長いトンネルを抜けると雪国であった。夜の底が白くなった。信号所に汽車が止まった。",
-  "メロスは激怒した。必ず、かの邪智暴虐の王を除かなければならぬと決意した。メロスには政治がわからぬ。",
-  "木曾路はすべて山の中である。あるところは岨づたいに行く崖の道であり、あるところは数十間の深い谷を臨む檜のかけ橋である。",
-  "親譲りの無鉄砲で小供の時から損ばかりしている。小学校に居る時分学校の二階から飛び降りて一週間ほど腰を抜かした事がある。",
-  "古池や蛙飛び込む水の音",
-  "夏草や兵どもが夢の跡",
-  "閑さや岩にしみ入る蝉の声",
-  "雲雀より上にやすらふ峠かな",
-  "菜の花や月は東に日は西に"
+interface DazaiWork {
+  title: string
+  content: string
+}
+
+// Fallback texts in case API fails
+const FALLBACK_TEXTS = [
+  "人間失格。私は、その男の写真を三葉、見たことがある。",
+  "恥の多い生涯を送って来ました。自分には、人間の生活というものが、見当つかないのです。",
+  "私は、いま、自分で自分を裁いて、出来るだけ正確に自分の事を語ろうと思います。",
+  "生れて、すみません。",
+  "私には、その女の美しさが、うつくしくないのです。",
+  "愛と革命。それは、私の生涯の主題でありました。"
 ]
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [rocks, setRocks] = useKV('waterfall-rocks', [] as Rock[])
   const [characters, setCharacters] = useState<Character[]>([])
+  const [dazaiTexts, setDazaiTexts] = useState<string[]>(FALLBACK_TEXTS)
+  const [isLoadingTexts, setIsLoadingTexts] = useState(true)
   const animationRef = useRef<number>()
   const lastTimeRef = useRef<number>(0)
   const characterSpawnRef = useRef<number>(0)
   const textIndexRef = useRef<number>(0)
-  const currentTextRef = useRef<string>(LITERARY_TEXTS[0])
+  const currentTextRef = useRef<string>(FALLBACK_TEXTS[0])
+  const overflowPositionsRef = useRef<{ [key: string]: { count: number; lastSpawn: number } }>({})
+
+  // Fetch Dazai works from API
+  useEffect(() => {
+    const fetchDazaiTexts = async () => {
+      try {
+        setIsLoadingTexts(true)
+        const response = await fetch('https://api.bungomail.com/works?author=太宰治')
+        if (response.ok) {
+          const works: DazaiWork[] = await response.json()
+          const texts = works.map(work => work.content).filter(content => content && content.length > 0)
+          if (texts.length > 0) {
+            setDazaiTexts(texts)
+            currentTextRef.current = texts[0]
+          } else {
+            setDazaiTexts(FALLBACK_TEXTS)
+            currentTextRef.current = FALLBACK_TEXTS[0]
+          }
+        } else {
+          console.warn('API request failed, using fallback texts')
+          setDazaiTexts(FALLBACK_TEXTS)
+        }
+      } catch (error) {
+        console.error('Failed to fetch Dazai texts:', error)
+        setDazaiTexts(FALLBACK_TEXTS)
+      } finally {
+        setIsLoadingTexts(false)
+      }
+    }
+
+    fetchDazaiTexts()
+  }, [])
 
   const getRandomChar = useCallback(() => {
     if (textIndexRef.current >= currentTextRef.current.length) {
-      const nextText = LITERARY_TEXTS[Math.floor(Math.random() * LITERARY_TEXTS.length)]
+      const nextText = dazaiTexts[Math.floor(Math.random() * dazaiTexts.length)]
       currentTextRef.current = nextText
       textIndexRef.current = 0
     }
     const char = currentTextRef.current[textIndexRef.current]
     textIndexRef.current++
     return char
-  }, [])
+  }, [dazaiTexts])
 
   const checkCollision = useCallback((char: Character, rock: Rock): boolean => {
     const dx = char.x - rock.x
@@ -89,6 +126,40 @@ function App() {
     }
   }, [])
 
+  // Check if character should overflow when blocked
+  const checkOverflow = useCallback((char: Character, canvas: HTMLCanvasElement): Character => {
+    const waterfallWidth = 300
+    const waterfallLeft = (canvas.width - waterfallWidth) / 2
+    const waterfallRight = waterfallLeft + waterfallWidth
+    
+    // Count characters in nearby area
+    const nearbyChars = characters.filter(c => 
+      Math.abs(c.x - char.x) < 50 && Math.abs(c.y - char.y) < 50 && c.vy < 0.1
+    )
+    
+    // If too many characters accumulated, start overflow
+    if (nearbyChars.length > 8 && char.vy < 0.3) {
+      return {
+        ...char,
+        isOverflowing: true,
+        vy: 1.0 + Math.random() * 0.5, // Force downward movement
+        vx: char.vx * 1.5 // Increase horizontal movement for overflow effect
+      }
+    }
+    
+    // Keep characters within waterfall bounds unless overflowing
+    if (!char.isOverflowing) {
+      if (char.x < waterfallLeft) {
+        return { ...char, x: waterfallLeft, vx: Math.abs(char.vx) * 0.5 }
+      }
+      if (char.x > waterfallRight) {
+        return { ...char, x: waterfallRight, vx: -Math.abs(char.vx) * 0.5 }
+      }
+    }
+    
+    return char
+  }, [characters])
+
   const updateCharacters = useCallback((deltaTime: number) => {
     setCharacters(prev => {
       const canvas = canvasRef.current
@@ -104,7 +175,9 @@ function App() {
         }
         
         // Add turbulence for more natural flow (reduced for centered waterfall)
-        newChar.vx += (Math.random() - 0.5) * 0.00005 * deltaTime
+        if (!newChar.isOverflowing) {
+          newChar.vx += (Math.random() - 0.5) * 0.00005 * deltaTime
+        }
         
         // Update trail
         newChar.trail = [
@@ -115,6 +188,7 @@ function App() {
           opacity: point.opacity * Math.pow(0.8, index)
         }))
         
+        // Check rock collisions
         for (const rock of rocks) {
           if (checkCollision(newChar, rock)) {
             newChar = deflectCharacter(newChar, rock)
@@ -122,6 +196,9 @@ function App() {
             newChar.trail = []
           }
         }
+        
+        // Apply overflow logic and boundary constraints
+        newChar = checkOverflow(newChar, canvas)
         
         // Fade out characters as they age or leave screen
         if (newChar.y > canvas.height - 100) {
@@ -135,11 +212,11 @@ function App() {
         return newChar
       }).filter(char => char.opacity > 0.01 && char.y < canvas.height + 100)
     })
-  }, [rocks, checkCollision, deflectCharacter])
+  }, [rocks, checkCollision, deflectCharacter, checkOverflow])
 
   const spawnCharacter = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || isLoadingTexts) return
     
     const char = getRandomChar()
     if (!char || char === ' ' || char === '\n') return
@@ -157,11 +234,12 @@ function App() {
       vy: 0.5 + Math.random() * 0.3,
       opacity: 1,
       trail: [],
-      age: 0
+      age: 0,
+      isOverflowing: false
     }
     
     setCharacters(prev => [...prev, newCharacter])
-  }, [getRandomChar])
+  }, [getRandomChar, isLoadingTexts])
 
   const render = useCallback(() => {
     const canvas = canvasRef.current
@@ -214,16 +292,17 @@ function App() {
     // Render main characters with glow effect
     characters.forEach(char => {
       const glowIntensity = Math.sin(char.age * 0.003) * 0.2 + 0.8
+      const overflowOpacity = char.isOverflowing ? 0.7 : 1.0
       
       // Outer glow
-      ctx.shadowColor = 'rgba(180, 220, 255, 0.6)'
+      ctx.shadowColor = char.isOverflowing ? 'rgba(255, 200, 180, 0.6)' : 'rgba(180, 220, 255, 0.6)'
       ctx.shadowBlur = 8
-      ctx.fillStyle = `rgba(220, 240, 255, ${char.opacity * glowIntensity})`
+      ctx.fillStyle = `rgba(220, 240, 255, ${char.opacity * glowIntensity * overflowOpacity})`
       ctx.fillText(char.char, char.x, char.y)
       
       // Inner character
       ctx.shadowBlur = 0
-      ctx.fillStyle = `rgba(255, 255, 255, ${char.opacity})`
+      ctx.fillStyle = `rgba(255, 255, 255, ${char.opacity * overflowOpacity})`
       ctx.fillText(char.char, char.x, char.y)
     })
     
@@ -235,7 +314,8 @@ function App() {
     lastTimeRef.current = currentTime
     
     characterSpawnRef.current += deltaTime
-    if (characterSpawnRef.current > 25) { // Further reduced to 25 for even more frequent spawning
+    // Reduced to 8ms for 3x more characters (was 25ms)
+    if (characterSpawnRef.current > 8) {
       spawnCharacter()
       characterSpawnRef.current = 0
     }
@@ -308,6 +388,11 @@ function App() {
         <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
           クリックして岩を配置 
         </div>
+        {isLoadingTexts && (
+          <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
+            太宰治の作品を読み込み中...
+          </div>
+        )}
       </div>
     </div>
   )
