@@ -103,8 +103,8 @@ function App() {
           age: char.age + deltaTime
         }
         
-        // Add turbulence for more natural flow
-        newChar.vx += (Math.random() - 0.5) * 0.0001 * deltaTime
+        // Add turbulence for more natural flow (reduced for centered waterfall)
+        newChar.vx += (Math.random() - 0.5) * 0.00005 * deltaTime
         
         // Update trail
         newChar.trail = [
@@ -144,12 +144,16 @@ function App() {
     const char = getRandomChar()
     if (!char || char === ' ' || char === '\n') return
     
+    // Calculate waterfall width (8cm ≈ 300px at 96dpi)
+    const waterfallWidth = 300
+    const waterfallLeft = (canvas.width - waterfallWidth) / 2
+    
     const newCharacter: Character = {
       id: Math.random().toString(36),
       char,
-      x: Math.random() * (canvas.width - 40) + 20,
+      x: waterfallLeft + Math.random() * waterfallWidth,
       y: -20,
-      vx: (Math.random() - 0.5) * 0.1,
+      vx: (Math.random() - 0.5) * 0.05, // Reduced horizontal movement
       vy: 0.5 + Math.random() * 0.3,
       opacity: 1,
       trail: [],
@@ -179,23 +183,18 @@ function App() {
     ctx.fillStyle = mistGradient
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     
-    // Render rocks with enhanced waterfall styling
+    // Render rocks with invisible/hidden styling
     rocks.forEach(rock => {
-      const rockGradient = ctx.createRadialGradient(rock.x - rock.radius*0.3, rock.y - rock.radius*0.3, 0, rock.x, rock.y, rock.radius)
-      rockGradient.addColorStop(0, 'rgba(180, 180, 190, 0.9)')
-      rockGradient.addColorStop(0.7, 'rgba(120, 120, 130, 0.8)')
-      rockGradient.addColorStop(1, 'rgba(80, 80, 90, 0.7)')
-      
-      ctx.fillStyle = rockGradient
+      // Render rocks with same color as background - invisible but functional
+      ctx.fillStyle = 'rgba(5, 5, 15, 0.8)' // Almost same as background gradient
       ctx.beginPath()
       ctx.arc(rock.x, rock.y, rock.radius, 0, Math.PI * 2)
       ctx.fill()
       
-      // Add water splash effect around rocks
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
-      ctx.beginPath()
-      ctx.arc(rock.x, rock.y, rock.radius + 5, 0, Math.PI * 2)
-      ctx.fill()
+      // Very subtle outline for debugging (barely visible)
+      ctx.strokeStyle = 'rgba(20, 20, 30, 0.3)'
+      ctx.lineWidth = 1
+      ctx.stroke()
     })
     
     ctx.font = '18px "Noto Serif JP", serif'
@@ -236,7 +235,7 @@ function App() {
     lastTimeRef.current = currentTime
     
     characterSpawnRef.current += deltaTime
-    if (characterSpawnRef.current > 100) {
+    if (characterSpawnRef.current > 50) { // Reduced from 100 to 50 for more frequent spawning
       spawnCharacter()
       characterSpawnRef.current = 0
     }
@@ -307,7 +306,7 @@ function App() {
           岩をクリア
         </button>
         <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-          クリックして岩を配置
+          クリックして岩を配置 (見えない岩)
         </div>
       </div>
     </div>
