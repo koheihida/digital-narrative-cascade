@@ -306,7 +306,7 @@ function App() {
           岩をクリア
         </button>
         <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-          クリックして岩を配置 (見えない岩)
+          クリックして岩を配置 
         </div>
       </div>
     </div>
