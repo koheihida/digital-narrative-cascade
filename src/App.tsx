@@ -27,14 +27,6 @@ interface DazaiWork {
 }
 
 // Fallback texts in case API fails
-const FALLBACK_TEXTS = [
-  "人間失格。私は、その男の写真を三葉、見たことがある。",
-  "恥の多い生涯を送って来ました。自分には、人間の生活というものが、見当つかないのです。",
-  "私は、いま、自分で自分を裁いて、出来るだけ正確に自分の事を語ろうと思います。",
-  "生れて、すみません。",
-  "私には、その女の美しさが、うつくしくないのです。",
-  "愛と革命。それは、私の生涯の主題でありました。"
-]
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
