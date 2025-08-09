@@ -27,6 +27,11 @@ interface DazaiWork {
 }
 
 // Fallback texts in case API fails
+const FALLBACK_TEXTS = [
+  '人間失格の序章。私は、その男の写真を三葉、見たことがある。',
+  '津軽の風景は、私の心に深い印象を残した。',
+  '斜陽の家族は、時代の波に飲み込まれていく。'
+]
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -54,16 +59,20 @@ function App() {
             setDazaiTexts(texts)
             currentTextRef.current = texts[0]
           } else {
-            setDazaiTexts(FALLBACK_TEXTS)
-            currentTextRef.current = FALLBACK_TEXTS[0]
+            // If API works but no content, wait for retry instead of using fallback
+            console.warn('No content from API, retrying...')
+            setTimeout(fetchDazaiTexts, 2000)
+            return
           }
         } else {
-          console.warn('API request failed, using fallback texts')
-          setDazaiTexts(FALLBACK_TEXTS)
+          console.warn('API request failed, retrying...')
+          setTimeout(fetchDazaiTexts, 2000)
+          return
         }
       } catch (error) {
-        console.error('Failed to fetch Dazai texts:', error)
-        setDazaiTexts(FALLBACK_TEXTS)
+        console.error('Failed to fetch Dazai texts, retrying...', error)
+        setTimeout(fetchDazaiTexts, 2000)
+        return
       } finally {
         setIsLoadingTexts(false)
       }
@@ -113,8 +122,8 @@ function App() {
       ...char,
       x: newX,
       y: newY,
-      vx: newVx * 0.8,
-      vy: Math.max(newVy * 0.8, 0.5)
+      vx: newVx * 0.7, // Reduced deflection force for slower flow
+      vy: Math.max(newVy * 0.7, 0.25) // Minimum speed reduced for slower flow
     }
   }, [])
 
@@ -134,8 +143,8 @@ function App() {
       return {
         ...char,
         isOverflowing: true,
-        vy: 1.0 + Math.random() * 0.5, // Force downward movement
-        vx: char.vx * 1.5 // Increase horizontal movement for overflow effect
+        vy: 0.5 + Math.random() * 0.25, // Reduced overflow force for slower flow
+        vx: char.vx * 1.3 // Reduced horizontal movement for overflow effect
       }
     }
     
@@ -162,13 +171,13 @@ function App() {
           ...char,
           x: char.x + char.vx * deltaTime,
           y: char.y + char.vy * deltaTime,
-          vy: char.vy + 0.002 * deltaTime,
+          vy: char.vy + 0.001 * deltaTime, // Reduced gravity for slower fall
           age: char.age + deltaTime
         }
         
         // Add turbulence for more natural flow (reduced for centered waterfall)
         if (!newChar.isOverflowing) {
-          newChar.vx += (Math.random() - 0.5) * 0.00005 * deltaTime
+          newChar.vx += (Math.random() - 0.5) * 0.000025 * deltaTime // Reduced turbulence for slower flow
         }
         
         // Update trail
@@ -208,7 +217,7 @@ function App() {
 
   const spawnCharacter = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas || isLoadingTexts) return
+    if (!canvas || isLoadingTexts || dazaiTexts.length === 0) return
     
     const char = getRandomChar()
     if (!char || char === ' ' || char === '\n') return
@@ -222,8 +231,8 @@ function App() {
       char,
       x: waterfallLeft + Math.random() * waterfallWidth,
       y: -20,
-      vx: (Math.random() - 0.5) * 0.05, // Reduced horizontal movement
-      vy: 0.5 + Math.random() * 0.3,
+      vx: (Math.random() - 0.5) * 0.025, // Reduced horizontal movement for slower flow
+      vy: 0.25 + Math.random() * 0.15, // Half the vertical speed
       opacity: 1,
       trail: [],
       age: 0,
@@ -231,7 +240,7 @@ function App() {
     }
     
     setCharacters(prev => [...prev, newCharacter])
-  }, [getRandomChar, isLoadingTexts])
+  }, [getRandomChar, isLoadingTexts, dazaiTexts])
 
   const render = useCallback(() => {
     const canvas = canvasRef.current
@@ -306,8 +315,8 @@ function App() {
     lastTimeRef.current = currentTime
     
     characterSpawnRef.current += deltaTime
-    // Reduced to 8ms for 3x more characters (was 25ms)
-    if (characterSpawnRef.current > 8) {
+    // Reduced to 4ms for double the amount (was 8ms)
+    if (characterSpawnRef.current > 4) {
       spawnCharacter()
       characterSpawnRef.current = 0
     }
@@ -383,6 +392,11 @@ function App() {
         {isLoadingTexts && (
           <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
             太宰治の作品を読み込み中...
+          </div>
+        )}
+        {!isLoadingTexts && dazaiTexts.length === 0 && (
+          <div className="px-4 py-2 bg-red-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
+            APIに接続できません。再読み込みしてください。
           </div>
         )}
       </div>
