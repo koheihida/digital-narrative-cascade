@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useKV } from './hooks/useKV'
 import { Character, Rock, DazaiWork } from './types'
 import { 
   PHYSICS_CONFIG, 
@@ -49,33 +49,49 @@ function App() {
   // 滝の幅を計算するメモ化された値
   const waterfallBounds = useMemo(() => getWaterfallBounds, [])
 
-  // 太宰治の作品をAPIから取得
+  // 太宰治の作品をAPIから取得（CORS対応）
   useEffect(() => {
     const fetchDazaiTexts = async () => {
       try {
         setIsLoadingTexts(true)
-        const response = await fetch('https://api.bungomail.com/works?author=太宰治')
+        
+        // CORSエラーを回避するためプロキシを使用する場合の設定
+        const apiUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://api.bungomail.com/works?author=太宰治')
+          : 'https://api.bungomail.com/works?author=太宰治'
+          
+        const response = await fetch(apiUrl)
         if (response.ok) {
-          const works: DazaiWork[] = await response.json()
+          let works: DazaiWork[]
+          
+          if (process.env.NODE_ENV === 'production') {
+            // プロキシ経由の場合
+            const proxyData = await response.json()
+            works = JSON.parse(proxyData.contents)
+          } else {
+            // 直接アクセスの場合
+            works = await response.json()
+          }
+          
           const texts = works.map(work => work.content).filter(content => content && content.length > 0)
           if (texts.length > 0) {
             setDazaiTexts(texts)
             currentTextRef.current = texts[0]
           } else {
-            // APIは動作するがコンテンツがない場合、フォールバックではなく再試行
-            console.warn('APIからコンテンツを取得できません。再試行中...')
-            setTimeout(fetchDazaiTexts, 2000)
-            return
+            // APIは動作するがコンテンツがない場合、フォールバックを使用
+            console.warn('APIからコンテンツを取得できません。フォールバックテキストを使用します。')
+            setDazaiTexts(FALLBACK_TEXTS)
+            currentTextRef.current = FALLBACK_TEXTS[0]
           }
         } else {
-          console.warn('APIリクエストが失敗しました。再試行中...')
-          setTimeout(fetchDazaiTexts, 2000)
-          return
+          console.warn('APIリクエストが失敗しました。フォールバックテキストを使用します。')
+          setDazaiTexts(FALLBACK_TEXTS)
+          currentTextRef.current = FALLBACK_TEXTS[0]
         }
       } catch (error) {
-        console.error('太宰治のテキスト取得に失敗しました。再試行中...', error)
-        setTimeout(fetchDazaiTexts, 2000)
-        return
+        console.error('太宰治のテキスト取得に失敗しました。フォールバックテキストを使用します。', error)
+        setDazaiTexts(FALLBACK_TEXTS)
+        currentTextRef.current = FALLBACK_TEXTS[0]
       } finally {
         setIsLoadingTexts(false)
       }
@@ -354,10 +370,10 @@ function App() {
           </div>
         )}
         
-        {/* API接続エラーの表示 */}
-        {!isLoadingTexts && dazaiTexts.length === 0 && (
-          <div className="px-4 py-2 bg-red-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-            APIに接続できません。再読み込みしてください。
+        {/* API接続状態の表示 */}
+        {!isLoadingTexts && dazaiTexts === FALLBACK_TEXTS && (
+          <div className="px-4 py-2 bg-yellow-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
+            フォールバックテキストを使用中
           </div>
         )}
       </div>

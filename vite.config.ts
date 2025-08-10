@@ -1,9 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
-import { defineConfig, PluginOption } from "vite";
-
-import sparkPlugin from "@github/spark/spark-vite-plugin";
-import createIconImportProxy from "@github/spark/vitePhosphorIconProxyPlugin";
+import { defineConfig } from "vite";
 import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
@@ -11,13 +8,10 @@ const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
 // https://vite.dev/config/
 export default defineConfig({
   // GitHub Pages用の設定: リポジトリ名をベースパスに設定
-  base: process.env.NODE_ENV === 'production' ? '/japanese-text-waterfall/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/digital-zen-garden-l/' : '/',
   plugins: [
     react(),
     tailwindcss(),
-    // DO NOT REMOVE
-    createIconImportProxy() as PluginOption,
-    sparkPlugin() as PluginOption,
   ],
   resolve: {
     alias: {
@@ -32,9 +26,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          physics: ['./src/utils/physics.ts'],
-          rendering: ['./src/utils/rendering.ts']
+          vendor: ['react', 'react-dom']
         }
       }
     }
