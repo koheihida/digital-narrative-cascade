@@ -81,11 +81,13 @@ npm run preview
 1. `main`ブランチにプッシュすると自動的にビルドが開始
 2. ビルド成功後、GitHub Pagesに自動デプロイ
 3. デプロイ完了後、以下のURLでアクセス可能：
-   - **🌐 ライブデモ**: https://koheihida.github.io/digital-zen-garden-l/
+   - **🌐 ライブデモ**: https://koheihida.github.io/digital-narrative-cascade/
 
 **デプロイ状況の確認方法**:
 - **Actions**: リポジトリの「Actions」タブでビルド状況を確認
 - **Pages**: リポジトリの「Settings」→「Pages」でデプロイ状況を確認
+
+**🔧 デプロイ問題の解決**: 詳細なデプロイガイドは [DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md) をご覧ください。
 
 生成された `dist/` フォルダを任意の静的ホスティングサービス（Netlify、Vercel、GitHub Pages等）にデプロイできます。
 
