@@ -23,7 +23,7 @@ const COMPACT_TEXT_SOURCES: TextSourceConfig[] = [
   },
   {
     id: 'custom',
-    name: 'カスタム',
+    name: 'Custom',
     description: 'URL取得',
     texts: []
   }

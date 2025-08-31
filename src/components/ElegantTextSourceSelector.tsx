@@ -24,7 +24,7 @@ const ELEGANT_TEXT_SOURCES: TextSourceConfig[] = [
     },
   {
     id: 'custom',
-    name: 'カスタム',
+    name: 'Custom',
     description: '任意のWebページから抽出',
     texts: []
   }
