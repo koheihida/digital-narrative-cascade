@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useKV } from './hooks/useKV'
-import { Character, Rock, DazaiWork, TextSource } from './types'
+import { Character, Rock, DazaiWork, TextSource, SpeedLevel } from './types'
 import { 
-  PHYSICS_CONFIG, 
+  PHYSICS_CONFIG,
+  createPhysicsConfig,
+  DynamicPhysicsConfig,
   checkCollision, 
   calculateReflection, 
   updateTrail, 
@@ -17,6 +19,7 @@ import {
 } from './utils/rendering'
 import HowToModal from './components/HowToModal'
 import { TextSourceSelector, TEXT_SOURCES } from './components/TextSourceSelector'
+import { SpeedController, SPEED_CONFIGS } from './components/SpeedController'
 
 // APIが失敗した場合のフォールバックテキスト
 const FALLBACK_TEXTS = [
@@ -41,6 +44,17 @@ function App() {
   const [isLoadingTexts, setIsLoadingTexts] = useState(true)
   const [currentTexts, setCurrentTexts] = useState<string[]>(FALLBACK_TEXTS)
   
+  // スピード制御の状態
+  const [currentSpeedLevel, setCurrentSpeedLevel] = useKV<SpeedLevel>('speed-level', 3)
+  const [physicsConfig, setPhysicsConfig] = useState<DynamicPhysicsConfig>(() => {
+    const speedConfig = SPEED_CONFIGS.find(config => config.level === 3)
+    return createPhysicsConfig({
+      GRAVITY: speedConfig?.gravity || PHYSICS_CONFIG.GRAVITY,
+      SPAWN_INTERVAL: speedConfig?.spawnInterval || PHYSICS_CONFIG.SPAWN_INTERVAL,
+      MIN_VELOCITY: speedConfig?.minVelocity || PHYSICS_CONFIG.MIN_VELOCITY
+    })
+  })
+  
   // アニメーションと文字生成の管理
   const animationRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(0)
@@ -55,6 +69,19 @@ function App() {
     setCurrentTextSource(newSource)
     textIndexRef.current = 0 // テキストインデックスをリセット
   }, [setCurrentTextSource])
+  
+  // スピード変更処理
+  const handleSpeedChange = useCallback((newSpeed: SpeedLevel) => {
+    setCurrentSpeedLevel(newSpeed)
+    const speedConfig = SPEED_CONFIGS.find(config => config.level === newSpeed)
+    if (speedConfig) {
+      setPhysicsConfig(createPhysicsConfig({
+        GRAVITY: speedConfig.gravity,
+        SPAWN_INTERVAL: speedConfig.spawnInterval,
+        MIN_VELOCITY: speedConfig.minVelocity
+      }))
+    }
+  }, [setCurrentSpeedLevel])
   
   // 現在のテキストソースに応じたテキストを取得
   useEffect(() => {
@@ -184,11 +211,11 @@ function App() {
     )
     
     // 文字が溜まりすぎた場合の溢れ処理
-    if (nearbyChars.length > PHYSICS_CONFIG.MAX_NEARBY_CHARS && char.vy < 0.3) {
+    if (nearbyChars.length > physicsConfig.MAX_NEARBY_CHARS && char.vy < 0.3) {
       return {
         ...char,
         isOverflowing: true,
-        vy: PHYSICS_CONFIG.OVERFLOW_VELOCITY + Math.random() * 0.25,
+        vy: physicsConfig.OVERFLOW_VELOCITY + Math.random() * 0.25,
         vx: char.vx * 1.3 // 横方向の動きを強化
       }
     }
@@ -204,7 +231,7 @@ function App() {
     }
     
     return char
-  }, [characters, waterfallBounds])
+  }, [characters, physicsConfig, waterfallBounds])
 
   // 全文字の物理更新処理
   const updateCharacters = useCallback((deltaTime: number) => {
@@ -218,13 +245,13 @@ function App() {
           ...char,
           x: char.x + char.vx * deltaTime,
           y: char.y + char.vy * deltaTime,
-          vy: char.vy + PHYSICS_CONFIG.GRAVITY * deltaTime, // 重力を適用
+          vy: char.vy + physicsConfig.GRAVITY * deltaTime, // 動的重力を適用
           age: char.age + deltaTime
         }
         
         // 自然な流れのための乱流効果（溢れていない場合のみ）
         if (!newChar.isOverflowing) {
-          newChar.vx += (Math.random() - 0.5) * PHYSICS_CONFIG.TURBULENCE * deltaTime
+          newChar.vx += (Math.random() - 0.5) * physicsConfig.TURBULENCE * deltaTime
         }
         
         // 軌跡の更新（視覚効果）
@@ -254,7 +281,7 @@ function App() {
         return newChar
       }).filter(char => char.opacity > 0.01 && char.y < canvas.height + 100) // 見えない文字を除去
     })
-  }, [rocks, checkCharacterCollision, deflectCharacter, checkOverflow])
+  }, [rocks, physicsConfig, checkCharacterCollision, deflectCharacter, checkOverflow])
 
   // 新しい文字を生成
   const spawnCharacter = useCallback(() => {
@@ -273,7 +300,7 @@ function App() {
       x: waterfallLeft + Math.random() * width,
       y: -20, // 画面上部から開始
       vx: (Math.random() - 0.5) * 0.025, // 軽微な横方向の初期速度
-      vy: PHYSICS_CONFIG.MIN_VELOCITY + Math.random() * 0.15, // 縦方向の初期速度
+      vy: physicsConfig.MIN_VELOCITY + Math.random() * 0.15, // 動的な縦方向初期速度
       opacity: 1,
       trail: [],
       age: 0,
@@ -281,7 +308,7 @@ function App() {
     }
     
     setCharacters(prev => [...prev, newCharacter])
-  }, [getRandomChar, isLoadingTexts, currentTexts, waterfallBounds])
+  }, [getRandomChar, isLoadingTexts, currentTexts, physicsConfig, waterfallBounds])
 
   // Canvas描画処理
   const render = useCallback(() => {
@@ -310,9 +337,9 @@ function App() {
     const deltaTime = currentTime - lastTimeRef.current
     lastTimeRef.current = currentTime
     
-    // 文字生成タイマーの更新
+    // 文字生成タイマーの更新（動的スピード適用）
     characterSpawnRef.current += deltaTime
-    if (characterSpawnRef.current > PHYSICS_CONFIG.SPAWN_INTERVAL) {
+    if (characterSpawnRef.current > physicsConfig.SPAWN_INTERVAL) {
       spawnCharacter()
       characterSpawnRef.current = 0
     }
@@ -323,7 +350,7 @@ function App() {
     
     // 次のフレームをスケジュール
     animationRef.current = requestAnimationFrame(animate)
-  }, [spawnCharacter, updateCharacters, render])
+  }, [physicsConfig, spawnCharacter, updateCharacters, render])
 
   // Canvasクリック時の岩配置処理
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -396,6 +423,12 @@ function App() {
           currentSource={currentTextSource}
           onSourceChange={handleTextSourceChange}
           isLoading={isLoadingTexts && currentTextSource === 'dazai'}
+        />
+        
+        {/* スピード制御 */}
+        <SpeedController
+          currentSpeed={currentSpeedLevel}
+          onSpeedChange={handleSpeedChange}
         />
         
         {/* 岩クリアボタン */}

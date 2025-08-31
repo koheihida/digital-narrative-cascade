@@ -38,3 +38,16 @@ export interface TextSourceConfig {
   description: string
   texts: string[]
 }
+
+// スピードレベルの定義
+export type SpeedLevel = 1 | 2 | 3 | 4 | 5
+
+// スピード設定のインターフェース
+export interface SpeedConfig {
+  level: SpeedLevel
+  name: string
+  description: string
+  gravity: number
+  spawnInterval: number
+  minVelocity: number
+}
