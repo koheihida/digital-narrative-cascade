@@ -19,9 +19,10 @@ import {
 } from './utils/rendering'
 import { fetchTextFromUrl } from './utils/urlTextExtractor'
 import HowToModal from './components/HowToModal'
-import { TextSourceSelector, TEXT_SOURCES } from './components/TextSourceSelector'
-import { SpeedController, SPEED_CONFIGS } from './components/SpeedController'
-import UrlTextFetcher from './components/UrlTextFetcher'
+import { CompactTextSourceSelector, COMPACT_TEXT_SOURCES } from './components/CompactTextSourceSelector'
+import { CompactSpeedController, COMPACT_SPEED_CONFIGS } from './components/CompactSpeedController'
+import CompactUrlFetcher from './components/CompactUrlFetcher'
+import ElegantActionButton from './components/ElegantActionButton'
 
 // APIが失敗した場合のフォールバックテキスト
 const FALLBACK_TEXTS = [
@@ -49,7 +50,7 @@ function App() {
   // スピード制御の状態
   const [currentSpeedLevel, setCurrentSpeedLevel] = useKV<SpeedLevel>('speed-level', 3)
   const [physicsConfig, setPhysicsConfig] = useState<DynamicPhysicsConfig>(() => {
-    const speedConfig = SPEED_CONFIGS.find(config => config.level === 3)
+    const speedConfig = COMPACT_SPEED_CONFIGS.find(config => config.level === 3)
     return createPhysicsConfig({
       GRAVITY: speedConfig?.gravity || PHYSICS_CONFIG.GRAVITY,
       SPAWN_INTERVAL: speedConfig?.spawnInterval || PHYSICS_CONFIG.SPAWN_INTERVAL,
@@ -84,7 +85,7 @@ function App() {
   // スピード変更処理
   const handleSpeedChange = useCallback((newSpeed: SpeedLevel) => {
     setCurrentSpeedLevel(newSpeed)
-    const speedConfig = SPEED_CONFIGS.find(config => config.level === newSpeed)
+    const speedConfig = COMPACT_SPEED_CONFIGS.find(config => config.level === newSpeed)
     if (speedConfig) {
       setPhysicsConfig(createPhysicsConfig({
         GRAVITY: speedConfig.gravity,
@@ -157,7 +158,7 @@ function App() {
   
   // 現在のテキストソースに応じたテキストを取得
   useEffect(() => {
-    const sourceConfig = TEXT_SOURCES.find(source => source.id === currentTextSource)
+    const sourceConfig = COMPACT_TEXT_SOURCES.find(source => source.id === currentTextSource)
     
     if (currentTextSource === 'hannya') {
       const hannyaTexts = sourceConfig?.texts || []
@@ -450,7 +451,7 @@ function App() {
     setRocks(prev => [...prev, newRock])
   }, [setRocks])
 
-  // 全ての岩をクリアする処理
+  // 全てのClearする処理
   const clearRocks = useCallback(() => {
     setRocks([])
   }, [setRocks])
@@ -490,56 +491,38 @@ function App() {
         className="text-flow-canvas absolute inset-0"
       />
       
-      {/* 操作パネル - 縦並び統一レイアウト */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 min-w-[200px]">
-        {/* 使い方モーダル */}
+      {/* 控えめなエレガント操作パネル */}
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 w-56">
+        {/* 使い方ガイド */}
         <HowToModal />
         
         {/* テキストソース選択 */}
-        <TextSourceSelector
+        <CompactTextSourceSelector
           currentSource={currentTextSource}
           onSourceChange={handleTextSourceChange}
           isLoading={isLoadingTexts && currentTextSource === 'dazai'}
         />
         
         {/* スピード制御 */}
-        <SpeedController
+        <CompactSpeedController
           currentSpeed={currentSpeedLevel}
           onSpeedChange={handleSpeedChange}
         />
         
         {/* URL文字取得 */}
         {currentTextSource === 'custom' && (
-          <UrlTextFetcher
+          <CompactUrlFetcher
             onUrlFetch={handleUrlFetch}
             fetchState={urlFetchState}
             onReset={handleUrlReset}
           />
         )}
         
-        {/* 岩クリアボタン */}
-        <button
-          onClick={clearRocks}
-          className="w-full px-4 py-3 bg-black/70 text-white rounded-lg text-sm font-medium hover:bg-black/80 transition-all duration-200 backdrop-blur-sm border border-white/20 shadow-lg"
-        >
-          岩をクリア
-        </button>
+        {/* 岩クリア */}
+        <ElegantActionButton onClick={clearRocks} variant="danger">
+          Clear
+        </ElegantActionButton>
         
-        {/* 操作説明カード */}
-        <div className="w-full px-4 py-3 bg-black/60 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20 shadow-lg">
-          <div className="text-center text-white/90">
-            💡 クリックして岩を配置
-          </div>
-        </div>
-        
-        {/* API接続状態の表示（太宰治ソースでフォールバック使用時のみ） */}
-        {currentTextSource === 'dazai' && !isLoadingTexts && dazaiTexts === FALLBACK_TEXTS && (
-          <div className="w-full px-4 py-3 bg-yellow-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-yellow-400/20 shadow-lg">
-            <div className="text-center">
-              ⚠️ フォールバックテキスト使用中
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -10,15 +10,21 @@ const HowToModal = () => {
         <Button
           variant="outline"
           size="sm"
-          className="bg-black/70 text-white border-white/20 hover:bg-black/80 backdrop-blur-sm"
+          className="
+            w-full py-3 bg-gradient-to-r from-slate-900/80 via-slate-800/70 to-slate-900/80 
+            text-white border border-slate-600/30 rounded-xl
+            hover:from-slate-800/90 hover:via-slate-700/80 hover:to-slate-800/90 
+            hover:border-slate-500/40 backdrop-blur-xl shadow-xl
+            transition-all duration-300 font-light tracking-wide
+          "
         >
-          使い方
+          How To Guide
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-black/95 text-white border-white/20 max-w-lg backdrop-blur-lg">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-xl font-bold text-center">
-            デジタル文字滝 - 使い方ガイド
+            Digital Character Waterfall - How To Guide
           </DialogTitle>
         </DialogHeader>
         
