@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { useKV } from './hooks/useKV'
-import { Character, Rock, DazaiWork, TextSource, SpeedLevel, UrlFetchState } from './types'
+import { Character, Rock, TextSource, SpeedLevel, UrlFetchState } from './types'
 import { 
   PHYSICS_CONFIG,
   createPhysicsConfig,
@@ -44,7 +44,7 @@ function App() {
   // テキストソースの状態
   const [currentTextSource, setCurrentTextSource] = useKV<TextSource>('text-source', 'dazai')
   const [dazaiTexts, setDazaiTexts] = useState<string[]>(FALLBACK_TEXTS)
-  const [isLoadingTexts, setIsLoadingTexts] = useState(true)
+  const [isLoadingTexts, setIsLoadingTexts] = useState(false)
   const [currentTexts, setCurrentTexts] = useState<string[]>(FALLBACK_TEXTS)
   
   // スピード制御の状態
@@ -80,7 +80,42 @@ function App() {
   const handleTextSourceChange = useCallback((newSource: TextSource) => {
     setCurrentTextSource(newSource)
     textIndexRef.current = 0 // テキストインデックスをリセット
-  }, [setCurrentTextSource])
+    
+    // 即座にテキストを設定（般若心経の場合）
+    if (newSource === 'hannya') {
+      const sourceConfig = COMPACT_TEXT_SOURCES.find(source => source.id === 'hannya')
+      if (sourceConfig?.texts && sourceConfig.texts.length > 0) {
+        setCurrentTexts(sourceConfig.texts)
+        currentTextRef.current = sourceConfig.texts[0]
+        textIndexRef.current = 0 // インデックスを確実にリセット
+        setIsLoadingTexts(false)
+      }
+    } else if (newSource === 'custom') {
+      // カスタムの場合も設定
+      if (customTexts.length > 0) {
+        setCurrentTexts(customTexts)
+        currentTextRef.current = customTexts[0]
+        setIsLoadingTexts(false)
+      }
+    }
+  }, [setCurrentTextSource, customTexts])
+  
+  // 初期化時のテキスト設定
+  useEffect(() => {
+    const sourceConfig = COMPACT_TEXT_SOURCES.find(source => source.id === currentTextSource)
+    
+    if (currentTextSource === 'hannya' && sourceConfig?.texts && sourceConfig.texts.length > 0) {
+      setCurrentTexts(sourceConfig.texts)
+      currentTextRef.current = sourceConfig.texts[0]
+      textIndexRef.current = 0
+      setIsLoadingTexts(false)
+    } else if (currentTextSource === 'custom' && customTexts.length > 0) {
+      setCurrentTexts(customTexts)
+      currentTextRef.current = customTexts[0]
+      textIndexRef.current = 0
+      setIsLoadingTexts(false)
+    }
+  }, []) // 初回のみ実行
   
   // スピード変更処理
   const handleSpeedChange = useCallback((newSpeed: SpeedLevel) => {
@@ -162,65 +197,116 @@ function App() {
     
     if (currentTextSource === 'hannya') {
       const hannyaTexts = sourceConfig?.texts || []
-      setCurrentTexts(hannyaTexts)
-      currentTextRef.current = hannyaTexts[0] || ''
-      setIsLoadingTexts(false)
+      if (hannyaTexts.length > 0) {
+        setCurrentTexts(hannyaTexts)
+        currentTextRef.current = hannyaTexts[0]
+        textIndexRef.current = 0
+        setIsLoadingTexts(false)
+      }
     } else if (currentTextSource === 'custom') {
-      // カスタムURL取得のテキストを使用
-      setCurrentTexts(customTexts)
-      currentTextRef.current = customTexts[0] || ''
-      setIsLoadingTexts(false)
+      if (customTexts.length > 0) {
+        setCurrentTexts(customTexts)
+        currentTextRef.current = customTexts[0]
+        textIndexRef.current = 0
+        setIsLoadingTexts(false)
+      }
     } else {
-      // 太宰治の場合は既存のAPIロジックを使用
-      setCurrentTexts(dazaiTexts)
-      currentTextRef.current = dazaiTexts[0] || FALLBACK_TEXTS[0]
+      // 太宰治の場合
+      if (dazaiTexts.length > 0) {
+        setCurrentTexts(dazaiTexts)
+        currentTextRef.current = dazaiTexts[0]
+        textIndexRef.current = 0
+      }
     }
   }, [currentTextSource, dazaiTexts, customTexts])
+  
+  // 般若心経や太宰治のテキスト変更時の追加処理
+  useEffect(() => {
+    // 現在のソースが般若心経の場合、dazaiTextsの変更に影響されないよう再設定
+    if (currentTextSource === 'hannya') {
+      const sourceConfig = COMPACT_TEXT_SOURCES.find(source => source.id === 'hannya')
+      if (sourceConfig?.texts && sourceConfig.texts.length > 0) {
+        setCurrentTexts(sourceConfig.texts)
+        currentTextRef.current = sourceConfig.texts[0]
+        textIndexRef.current = 0
+      }
+    }
+  }, [dazaiTexts]) // dazaiTextsが変更された時のみ実行
 
   // 滝の境界計算関数をメモ化
   const waterfallBounds = useCallback((canvasWidth: number) => getWaterfallBounds(canvasWidth), [])
 
-  // 太宰治の作品をAPIから取得（CORS対応）
+  // 太宰治の作品をAPIから取得（初回のみ）
   useEffect(() => {
     const fetchDazaiTexts = async () => {
+      // 既にテキストが取得済みの場合はスキップ
+      if (dazaiTexts !== FALLBACK_TEXTS && dazaiTexts.length > 0) {
+        return
+      }
+      
       try {
         setIsLoadingTexts(true)
         
-        // CORSエラーを回避するためプロキシを使用する場合の設定
-        const apiUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://api.bungomail.com/works?author=太宰治')
-          : 'https://api.bungomail.com/works?author=太宰治'
+        // 青空文庫の太宰治作品URLからランダム選択
+        const aozoraEndpoints = [
+          'https://www.aozora.gr.jp/cards/000035/files/270_14914.html',  // 人間失格
+          'https://www.aozora.gr.jp/cards/000035/files/1566_8578.html',  // 津軽
+          'https://www.aozora.gr.jp/cards/000035/files/301_14912.html',  // 斜陽
+          'https://www.aozora.gr.jp/cards/000035/files/1569_23528.html', // 走れメロス
+          'https://www.aozora.gr.jp/cards/000035/files/1595_18106.html', // 富嶽百景
+          'https://www.aozora.gr.jp/cards/000035/files/258_20179.html'   // 桜桃
+        ]
+        
+        // ランダムにエンドポイントを選択
+        const randomEndpoint = aozoraEndpoints[Math.floor(Math.random() * aozoraEndpoints.length)]
+        
+        // CORSエラーを回避するためプロキシを使用
+        const apiUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(randomEndpoint)
           
         const response = await fetch(apiUrl)
         if (response.ok) {
-          let works: DazaiWork[]
+          const proxyData = await response.json()
+          const htmlContent = proxyData.contents
           
-          if (process.env.NODE_ENV === 'production') {
-            // プロキシ経由の場合
-            const proxyData = await response.json()
-            works = JSON.parse(proxyData.contents)
-          } else {
-            // 直接アクセスの場合
-            works = await response.json()
-          }
+          // HTMLからテキストを抽出
+          const parser = new DOMParser()
+          const doc = parser.parseFromString(htmlContent, 'text/html')
           
-          const texts = works.map(work => work.content).filter(content => content && content.length > 0)
-          if (texts.length > 0) {
-            setDazaiTexts(texts)
-            // 現在のソースが太宰治の場合のみテキスト参照を更新
-            if (currentTextSource === 'dazai') {
-              currentTextRef.current = texts[0]
+          // 青空文庫の本文部分を抽出（.main_textクラス内のテキスト）
+          const mainTextElement = doc.querySelector('.main_text')
+          if (mainTextElement) {
+            // HTMLタグを除去してテキストのみ抽出
+            let textContent = mainTextElement.textContent || (mainTextElement as HTMLElement).innerText || ''
+            
+            // 余分な空白や改行を整理
+            textContent = textContent.replace(/\s+/g, '').trim()
+            
+            const texts = [textContent]
+            
+            if (texts.length > 0 && textContent.length > 100) {
+              setDazaiTexts(texts)
+              // 現在のソースが太宰治の場合のみテキスト参照を更新
+              if (currentTextSource === 'dazai') {
+                currentTextRef.current = texts[0]
+              }
+            } else {
+              // テキストが短すぎる場合、フォールバックを使用
+              console.warn('抽出されたテキストが短すぎます。フォールバックテキストを使用します。')
+              setDazaiTexts(FALLBACK_TEXTS)
+              if (currentTextSource === 'dazai') {
+                currentTextRef.current = FALLBACK_TEXTS[0]
+              }
             }
           } else {
-            // APIは動作するがコンテンツがない場合、フォールバックを使用
-            console.warn('APIからコンテンツを取得できません。フォールバックテキストを使用します。')
+            // main_textクラスが見つからない場合
+            console.warn('青空文庫のテキスト構造が見つかりません。フォールバックテキストを使用します。')
             setDazaiTexts(FALLBACK_TEXTS)
             if (currentTextSource === 'dazai') {
               currentTextRef.current = FALLBACK_TEXTS[0]
             }
           }
         } else {
-          console.warn('APIリクエストが失敗しました。フォールバックテキストを使用します。')
+          console.warn('プロキシリクエストが失敗しました。フォールバックテキストを使用します。')
           setDazaiTexts(FALLBACK_TEXTS)
           if (currentTextSource === 'dazai') {
             currentTextRef.current = FALLBACK_TEXTS[0]
@@ -241,20 +327,44 @@ function App() {
     }
 
     fetchDazaiTexts()
-  }, [currentTextSource])
+  }, []) // 初回のみ実行
 
   // ランダムな文字を取得（現在のテキストソースから順次選択）
   const getRandomChar = useCallback(() => {
+    // テキストが空の場合の対策
+    if (!currentTextRef.current || currentTextRef.current.length === 0) {
+      if (currentTexts.length > 0) {
+        currentTextRef.current = currentTexts[0]
+        textIndexRef.current = 0
+      } else {
+        return ''
+      }
+    }
+    
+    // インデックスが範囲を超えた場合の処理
     if (textIndexRef.current >= currentTextRef.current.length) {
-      // 現在のテキストが終了したら次のテキストを選択
-      const nextText = currentTexts[Math.floor(Math.random() * currentTexts.length)]
-      currentTextRef.current = nextText
+      if (currentTextSource === 'hannya') {
+        // 般若心経は最初から繰り返し
+        textIndexRef.current = 0
+      } else {
+        // 太宰治やカスタムの場合は別のテキストを選択
+        if (currentTexts.length > 0) {
+          const nextText = currentTexts[Math.floor(Math.random() * currentTexts.length)]
+          currentTextRef.current = nextText
+          textIndexRef.current = 0
+        }
+      }
+    }
+    
+    // 安全チェック：インデックスが範囲内であることを確認
+    if (textIndexRef.current >= currentTextRef.current.length) {
       textIndexRef.current = 0
     }
+    
     const char = currentTextRef.current[textIndexRef.current]
     textIndexRef.current++
     return char
-  }, [currentTexts])
+  }, [currentTexts, currentTextSource])
 
   // 文字と岩の衝突判定
   const checkCharacterCollision = useCallback((char: Character, rock: Rock): boolean => {
