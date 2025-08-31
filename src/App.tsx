@@ -638,7 +638,7 @@ function App() {
         
         {/* 岩表示切り替え */}
         <ElegantActionButton onClick={toggleRockVisibility} variant="secondary">
-          岩表示: {rockVisibility ? 'ON' : 'OFF'}
+          {rockVisibility ? 'Display' : 'Hidden'}
         </ElegantActionButton>
         
         {/* 岩クリア */}
