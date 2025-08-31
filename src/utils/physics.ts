@@ -1,7 +1,7 @@
 // 物理演算ユーティリティ関数
 
-// 物理定数
-export const PHYSICS_CONFIG = {
+// 物理定数（デフォルト値）
+export const DEFAULT_PHYSICS_CONFIG = {
   GRAVITY: 0.001, // 重力加速度
   TURBULENCE: 0.000025, // 乱流の強さ
   DEFLECTION_DAMPING: 0.7, // 反射時の減衰率
@@ -12,6 +12,28 @@ export const PHYSICS_CONFIG = {
   MAX_NEARBY_CHARS: 8, // 溢れを起こす文字数
   WATERFALL_WIDTH: 300 // 滝の幅（8cm相当）
 } as const
+
+// 動的物理設定（速度制御用）
+export interface DynamicPhysicsConfig {
+  GRAVITY: number
+  TURBULENCE: number
+  DEFLECTION_DAMPING: number
+  MIN_VELOCITY: number
+  OVERFLOW_VELOCITY: number
+  SPAWN_INTERVAL: number
+  TRAIL_LENGTH: number
+  MAX_NEARBY_CHARS: number
+  WATERFALL_WIDTH: number
+}
+
+// デフォルト設定をコピーして動的設定を作成
+export const createPhysicsConfig = (overrides: Partial<DynamicPhysicsConfig> = {}): DynamicPhysicsConfig => ({
+  ...DEFAULT_PHYSICS_CONFIG,
+  ...overrides
+})
+
+// 後方互換性のため
+export const PHYSICS_CONFIG = DEFAULT_PHYSICS_CONFIG
 
 // 文字と岩の衝突判定
 export function checkCollision(
