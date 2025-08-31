@@ -29,7 +29,7 @@ export interface DazaiWork {
 }
 
 // テキストソースの種類
-export type TextSource = 'dazai' | 'hannya'
+export type TextSource = 'dazai' | 'hannya' | 'custom'
 
 // テキストソース設定のインターフェース
 export interface TextSourceConfig {
@@ -50,4 +50,12 @@ export interface SpeedConfig {
   gravity: number
   spawnInterval: number
   minVelocity: number
+}
+
+// URL文字取得の状態
+export interface UrlFetchState {
+  url: string
+  isLoading: boolean
+  error: string | null
+  texts: string[]
 }
