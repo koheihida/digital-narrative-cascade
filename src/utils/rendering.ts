@@ -23,17 +23,32 @@ export function drawBackground(ctx: CanvasRenderingContext2D, canvas: HTMLCanvas
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 }
 
-// 岩の描画（背景色と同じで見えないが機能は有効）
+// 岩の描画（控えめで美しい表示）
 export function drawRocks(ctx: CanvasRenderingContext2D, rocks: Rock[]) {
   rocks.forEach(rock => {
-    ctx.fillStyle = 'rgba(5, 5, 15, 0.8)' // 背景とほぼ同色
+    // 内側の薄い塗りつぶし
+    ctx.fillStyle = 'rgba(20, 25, 35, 0.3)'
     ctx.beginPath()
     ctx.arc(rock.x, rock.y, rock.radius, 0, Math.PI * 2)
     ctx.fill()
     
-    // デバッグ用の薄いアウトライン
-    ctx.strokeStyle = 'rgba(20, 20, 30, 0.3)'
+    // 美しい輪郭線（グラデーション効果）
+    const gradient = ctx.createRadialGradient(
+      rock.x, rock.y, rock.radius * 0.7,
+      rock.x, rock.y, rock.radius
+    )
+    gradient.addColorStop(0, 'rgba(100, 120, 150, 0.4)')
+    gradient.addColorStop(1, 'rgba(60, 80, 110, 0.2)')
+    
+    ctx.strokeStyle = gradient
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    
+    // さらに内側のハイライト
+    ctx.strokeStyle = 'rgba(150, 170, 200, 0.15)'
     ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(rock.x, rock.y, rock.radius * 0.8, 0, Math.PI * 2)
     ctx.stroke()
   })
 }
@@ -41,7 +56,7 @@ export function drawRocks(ctx: CanvasRenderingContext2D, rocks: Rock[]) {
 // 文字の軌跡描画
 export function drawCharacterTrails(ctx: CanvasRenderingContext2D, characters: Character[]) {
   characters.forEach(char => {
-    char.trail.forEach((point, index) => {
+    char.trail.forEach((point) => {
       if (point.opacity > 0.01) {
         ctx.fillStyle = `rgba(200, 230, 255, ${point.opacity * 0.3})`
         ctx.fillText(char.char, point.x, point.y)

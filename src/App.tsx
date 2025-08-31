@@ -37,6 +37,7 @@ function App() {
   
   // 永続化された岩の状態
   const [rocks, setRocks] = useKV('waterfall-rocks', [] as Rock[])
+  const [rockVisibility, setRockVisibility] = useKV('rock-visibility', false)
   
   // 流れる文字の状態（非永続化）
   const [characters, setCharacters] = useState<Character[]>([])
@@ -507,8 +508,10 @@ function App() {
     // 背景の描画
     drawBackground(ctx, canvas)
     
-    // 岩の描画
-    drawRocks(ctx, rocks)
+    // 岩の描画（表示設定がオンの場合のみ）
+    if (rockVisibility) {
+      drawRocks(ctx, rocks)
+    }
     
     // Canvas描画設定
     setupCanvasContext(ctx)
@@ -565,6 +568,11 @@ function App() {
   const clearRocks = useCallback(() => {
     setRocks([])
   }, [setRocks])
+
+  // 岩の表示/非表示切り替え処理
+  const toggleRockVisibility = useCallback(() => {
+    setRockVisibility(prev => !prev)
+  }, [setRockVisibility])
 
   // Canvas初期化とリサイズ処理
   useEffect(() => {
@@ -627,6 +635,11 @@ function App() {
             onReset={handleUrlReset}
           />
         )}
+        
+        {/* 岩表示切り替え */}
+        <ElegantActionButton onClick={toggleRockVisibility} variant="secondary">
+          岩表示: {rockVisibility ? 'ON' : 'OFF'}
+        </ElegantActionButton>
         
         {/* 岩クリア */}
         <ElegantActionButton onClick={clearRocks} variant="danger">
