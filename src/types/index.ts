@@ -27,3 +27,14 @@ export interface DazaiWork {
   title: string
   content: string
 }
+
+// テキストソースの種類
+export type TextSource = 'dazai' | 'hannya'
+
+// テキストソース設定のインターフェース
+export interface TextSourceConfig {
+  id: TextSource
+  name: string
+  description: string
+  texts: string[]
+}

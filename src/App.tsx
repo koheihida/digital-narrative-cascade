@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useKV } from './hooks/useKV'
-import { Character, Rock, DazaiWork } from './types'
+import { Character, Rock, DazaiWork, TextSource } from './types'
 import { 
   PHYSICS_CONFIG, 
   checkCollision, 
@@ -15,6 +15,8 @@ import {
   drawCharacters, 
   setupCanvasContext 
 } from './utils/rendering'
+import HowToModal from './components/HowToModal'
+import { TextSourceSelector, TEXT_SOURCES } from './components/TextSourceSelector'
 
 // APIが失敗した場合のフォールバックテキスト
 const FALLBACK_TEXTS = [
@@ -33,9 +35,11 @@ function App() {
   // 流れる文字の状態（非永続化）
   const [characters, setCharacters] = useState<Character[]>([])
   
-  // 太宰治の作品テキスト
+  // テキストソースの状態
+  const [currentTextSource, setCurrentTextSource] = useKV<TextSource>('text-source', 'dazai')
   const [dazaiTexts, setDazaiTexts] = useState<string[]>(FALLBACK_TEXTS)
   const [isLoadingTexts, setIsLoadingTexts] = useState(true)
+  const [currentTexts, setCurrentTexts] = useState<string[]>(FALLBACK_TEXTS)
   
   // アニメーションと文字生成の管理
   const animationRef = useRef<number>()
@@ -45,6 +49,28 @@ function App() {
   // テキスト管理の参照
   const textIndexRef = useRef<number>(0)
   const currentTextRef = useRef<string>(FALLBACK_TEXTS[0])
+  
+  // テキストソース切り替え処理
+  const handleTextSourceChange = useCallback((newSource: TextSource) => {
+    setCurrentTextSource(newSource)
+    textIndexRef.current = 0 // テキストインデックスをリセット
+  }, [setCurrentTextSource])
+  
+  // 現在のテキストソースに応じたテキストを取得
+  useEffect(() => {
+    const sourceConfig = TEXT_SOURCES.find(source => source.id === currentTextSource)
+    
+    if (currentTextSource === 'hannya') {
+      const hannyaTexts = sourceConfig?.texts || []
+      setCurrentTexts(hannyaTexts)
+      currentTextRef.current = hannyaTexts[0] || ''
+      setIsLoadingTexts(false)
+    } else {
+      // 太宰治の場合は既存のAPIロジックを使用
+      setCurrentTexts(dazaiTexts)
+      currentTextRef.current = dazaiTexts[0] || FALLBACK_TEXTS[0]
+    }
+  }, [currentTextSource, dazaiTexts])
 
   // 滝の幅を計算するメモ化された値
   const waterfallBounds = useMemo(() => getWaterfallBounds, [])
@@ -76,42 +102,54 @@ function App() {
           const texts = works.map(work => work.content).filter(content => content && content.length > 0)
           if (texts.length > 0) {
             setDazaiTexts(texts)
-            currentTextRef.current = texts[0]
+            // 現在のソースが太宰治の場合のみテキスト参照を更新
+            if (currentTextSource === 'dazai') {
+              currentTextRef.current = texts[0]
+            }
           } else {
             // APIは動作するがコンテンツがない場合、フォールバックを使用
             console.warn('APIからコンテンツを取得できません。フォールバックテキストを使用します。')
             setDazaiTexts(FALLBACK_TEXTS)
-            currentTextRef.current = FALLBACK_TEXTS[0]
+            if (currentTextSource === 'dazai') {
+              currentTextRef.current = FALLBACK_TEXTS[0]
+            }
           }
         } else {
           console.warn('APIリクエストが失敗しました。フォールバックテキストを使用します。')
           setDazaiTexts(FALLBACK_TEXTS)
-          currentTextRef.current = FALLBACK_TEXTS[0]
+          if (currentTextSource === 'dazai') {
+            currentTextRef.current = FALLBACK_TEXTS[0]
+          }
         }
       } catch (error) {
         console.error('太宰治のテキスト取得に失敗しました。フォールバックテキストを使用します。', error)
         setDazaiTexts(FALLBACK_TEXTS)
-        currentTextRef.current = FALLBACK_TEXTS[0]
+        if (currentTextSource === 'dazai') {
+          currentTextRef.current = FALLBACK_TEXTS[0]
+        }
       } finally {
-        setIsLoadingTexts(false)
+        // 太宰治ソースの場合のみローディング状態を更新
+        if (currentTextSource === 'dazai') {
+          setIsLoadingTexts(false)
+        }
       }
     }
 
     fetchDazaiTexts()
-  }, [])
+  }, [currentTextSource])
 
-  // ランダムな文字を取得（太宰治の作品から順次選択）
+  // ランダムな文字を取得（現在のテキストソースから順次選択）
   const getRandomChar = useCallback(() => {
     if (textIndexRef.current >= currentTextRef.current.length) {
       // 現在のテキストが終了したら次のテキストを選択
-      const nextText = dazaiTexts[Math.floor(Math.random() * dazaiTexts.length)]
+      const nextText = currentTexts[Math.floor(Math.random() * currentTexts.length)]
       currentTextRef.current = nextText
       textIndexRef.current = 0
     }
     const char = currentTextRef.current[textIndexRef.current]
     textIndexRef.current++
     return char
-  }, [dazaiTexts])
+  }, [currentTexts])
 
   // 文字と岩の衝突判定
   const checkCharacterCollision = useCallback((char: Character, rock: Rock): boolean => {
@@ -221,7 +259,7 @@ function App() {
   // 新しい文字を生成
   const spawnCharacter = useCallback(() => {
     const canvas = canvasRef.current
-    if (!canvas || isLoadingTexts || dazaiTexts.length === 0) return
+    if (!canvas || isLoadingTexts || currentTexts.length === 0) return
     
     const char = getRandomChar()
     if (!char || char === ' ' || char === '\n') return // 空白や改行はスキップ
@@ -243,7 +281,7 @@ function App() {
     }
     
     setCharacters(prev => [...prev, newCharacter])
-  }, [getRandomChar, isLoadingTexts, dazaiTexts, waterfallBounds])
+  }, [getRandomChar, isLoadingTexts, currentTexts, waterfallBounds])
 
   // Canvas描画処理
   const render = useCallback(() => {
@@ -348,32 +386,39 @@ function App() {
         className="text-flow-canvas absolute inset-0"
       />
       
-      {/* 操作パネル */}
-      <div className="absolute top-4 left-4 z-10 flex gap-2">
+      {/* 操作パネル - 縦並び統一レイアウト */}
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-3 min-w-[200px]">
+        {/* 使い方モーダル */}
+        <HowToModal />
+        
+        {/* テキストソース選択 */}
+        <TextSourceSelector
+          currentSource={currentTextSource}
+          onSourceChange={handleTextSourceChange}
+          isLoading={isLoadingTexts && currentTextSource === 'dazai'}
+        />
+        
         {/* 岩クリアボタン */}
         <button
           onClick={clearRocks}
-          className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm hover:bg-black/80 transition-colors backdrop-blur-sm border border-white/20"
+          className="w-full px-4 py-3 bg-black/70 text-white rounded-lg text-sm font-medium hover:bg-black/80 transition-all duration-200 backdrop-blur-sm border border-white/20 shadow-lg"
         >
           岩をクリア
         </button>
         
-        {/* 操作説明 */}
-        <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-          クリックして岩を配置 
+        {/* 操作説明カード */}
+        <div className="w-full px-4 py-3 bg-black/60 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20 shadow-lg">
+          <div className="text-center text-white/90">
+            💡 クリックして岩を配置
+          </div>
         </div>
         
-        {/* ローディング状態の表示 */}
-        {isLoadingTexts && (
-          <div className="px-4 py-2 bg-black/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-            太宰治の作品を読み込み中...
-          </div>
-        )}
-        
-        {/* API接続状態の表示 */}
-        {!isLoadingTexts && dazaiTexts === FALLBACK_TEXTS && (
-          <div className="px-4 py-2 bg-yellow-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-white/20">
-            フォールバックテキストを使用中
+        {/* API接続状態の表示（太宰治ソースでフォールバック使用時のみ） */}
+        {currentTextSource === 'dazai' && !isLoadingTexts && dazaiTexts === FALLBACK_TEXTS && (
+          <div className="w-full px-4 py-3 bg-yellow-600/70 text-white rounded-lg text-sm backdrop-blur-sm border border-yellow-400/20 shadow-lg">
+            <div className="text-center">
+              ⚠️ フォールバックテキスト使用中
+            </div>
           </div>
         )}
       </div>
