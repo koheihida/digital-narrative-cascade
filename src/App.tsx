@@ -42,7 +42,7 @@ function App() {
   const [currentTexts, setCurrentTexts] = useState<string[]>(FALLBACK_TEXTS)
   
   // アニメーションと文字生成の管理
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(0)
   const characterSpawnRef = useRef<number>(0)
   
@@ -72,8 +72,8 @@ function App() {
     }
   }, [currentTextSource, dazaiTexts])
 
-  // 滝の幅を計算するメモ化された値
-  const waterfallBounds = useMemo(() => getWaterfallBounds, [])
+  // 滝の境界計算関数をメモ化
+  const waterfallBounds = useCallback((canvasWidth: number) => getWaterfallBounds(canvasWidth), [])
 
   // 太宰治の作品をAPIから取得（CORS対応）
   useEffect(() => {
