@@ -85,6 +85,10 @@ const HowToModal = () => {
                   <span className="text-yellow-200 font-mono">•</span>
                   <span><strong>岩の配置</strong>：クリックで岩を設置、文字の流れを制御</span>
                 </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-200 font-mono">•</span>
+                  <span><strong>岩の表示</strong>：岩表示ボタンで配置した岩を可視化</span>
+                </div>
               </div>
             </CardContent>
           </Card>
