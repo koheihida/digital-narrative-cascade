@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useKV } from './hooks/useKV'
-import { Character, Rock, DazaiWork, TextSource, SpeedLevel } from './types'
+import { Character, Rock, DazaiWork, TextSource, SpeedLevel, UrlFetchState } from './types'
 import { 
   PHYSICS_CONFIG,
   createPhysicsConfig,
@@ -17,9 +17,11 @@ import {
   drawCharacters, 
   setupCanvasContext 
 } from './utils/rendering'
+import { fetchTextFromUrl } from './utils/urlTextExtractor'
 import HowToModal from './components/HowToModal'
 import { TextSourceSelector, TEXT_SOURCES } from './components/TextSourceSelector'
 import { SpeedController, SPEED_CONFIGS } from './components/SpeedController'
+import UrlTextFetcher from './components/UrlTextFetcher'
 
 // APIが失敗した場合のフォールバックテキスト
 const FALLBACK_TEXTS = [
@@ -55,6 +57,15 @@ function App() {
     })
   })
   
+  // URL文字取得の状態
+  const [urlFetchState, setUrlFetchState] = useState<UrlFetchState>({
+    url: '',
+    isLoading: false,
+    error: null,
+    texts: []
+  })
+  const [customTexts, setCustomTexts] = useState<string[]>([])
+  
   // アニメーションと文字生成の管理
   const animationRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(0)
@@ -83,6 +94,67 @@ function App() {
     }
   }, [setCurrentSpeedLevel])
   
+  // URL文字取得処理
+  const handleUrlFetch = useCallback(async (url: string) => {
+    setUrlFetchState({
+      url: '',
+      isLoading: true,
+      error: null,
+      texts: []
+    })
+    
+    try {
+      const result = await fetchTextFromUrl(url)
+      
+      if (result.error) {
+        setUrlFetchState({
+          url,
+          isLoading: false,
+          error: result.error,
+          texts: []
+        })
+      } else {
+        setUrlFetchState({
+          url,
+          isLoading: false,
+          error: null,
+          texts: result.texts
+        })
+        setCustomTexts(result.texts)
+        
+        // 自動的にカスタムテキストソースに切り替え
+        if (currentTextSource !== 'custom') {
+          setCurrentTextSource('custom')
+          textIndexRef.current = 0
+        }
+      }
+    } catch (error) {
+      setUrlFetchState({
+        url,
+        isLoading: false,
+        error: error instanceof Error ? error.message : '不明なエラーが発生しました',
+        texts: []
+      })
+    }
+  }, [currentTextSource, setCurrentTextSource])
+  
+  // URL取得リセット処理
+  const handleUrlReset = useCallback(() => {
+    setUrlFetchState({
+      url: '',
+      isLoading: false,
+      error: null,
+      texts: []
+    })
+    setCustomTexts([])
+    
+    // 太宰治に戻す
+    if (currentTextSource === 'custom') {
+      setCurrentTextSource('dazai')
+      textIndexRef.current = 0
+    }
+  }, [currentTextSource, setCurrentTextSource])
+  
   // 現在のテキストソースに応じたテキストを取得
   useEffect(() => {
     const sourceConfig = TEXT_SOURCES.find(source => source.id === currentTextSource)
@@ -92,12 +164,17 @@ function App() {
       setCurrentTexts(hannyaTexts)
       currentTextRef.current = hannyaTexts[0] || ''
       setIsLoadingTexts(false)
+    } else if (currentTextSource === 'custom') {
+      // カスタムURL取得のテキストを使用
+      setCurrentTexts(customTexts)
+      currentTextRef.current = customTexts[0] || ''
+      setIsLoadingTexts(false)
     } else {
       // 太宰治の場合は既存のAPIロジックを使用
       setCurrentTexts(dazaiTexts)
       currentTextRef.current = dazaiTexts[0] || FALLBACK_TEXTS[0]
     }
-  }, [currentTextSource, dazaiTexts])
+  }, [currentTextSource, dazaiTexts, customTexts])
 
   // 滝の境界計算関数をメモ化
   const waterfallBounds = useCallback((canvasWidth: number) => getWaterfallBounds(canvasWidth), [])
@@ -430,6 +507,15 @@ function App() {
           currentSpeed={currentSpeedLevel}
           onSpeedChange={handleSpeedChange}
         />
+        
+        {/* URL文字取得 */}
+        {currentTextSource === 'custom' && (
+          <UrlTextFetcher
+            onUrlFetch={handleUrlFetch}
+            fetchState={urlFetchState}
+            onReset={handleUrlReset}
+          />
+        )}
         
         {/* 岩クリアボタン */}
         <button

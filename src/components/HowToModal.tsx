@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from './ui/dialog'
 import { Card, CardContent } from './ui/card'
@@ -66,19 +65,63 @@ const HowToModal = () => {
 
           <Card className="bg-white/10 border-white/20">
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 text-yellow-300">楽しみ方のコツ</h3>
+              <h3 className="font-semibold mb-3 text-yellow-300">コントロール機能</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex items-start gap-2">
                   <span className="text-yellow-200 font-mono">•</span>
+                  <span><strong>テキストソース</strong>：太宰治、般若心経、カスタムURLから選択</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-200 font-mono">•</span>
+                  <span><strong>スピード調整</strong>：文字の落下速度を5段階で細かく制御</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-yellow-200 font-mono">•</span>
+                  <span><strong>岩の配置</strong>：クリックで岩を設置、文字の流れを制御</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/10 border-white/20">
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-3 text-purple-300">カスタムURL機能</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-200 font-mono">•</span>
+                  <span>任意のWebサイトのURLを入力</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-200 font-mono">•</span>
+                  <span>自動的にテキストを抽出・整理</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-200 font-mono">•</span>
+                  <span>ニュース、小説、ブログなど幅広く対応</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-200 font-mono">•</span>
+                  <span>安全なエラーハンドリングで確実な取得</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/10 border-white/20">
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-3 text-orange-300">楽しみ方のコツ</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-orange-200 font-mono">•</span>
                   <span>岩を斜めに配置すると文字が美しく反射します</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-yellow-200 font-mono">•</span>
+                  <span className="text-orange-200 font-mono">•</span>
                   <span>複数の岩で「文字の道」を作ってみましょう</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-yellow-200 font-mono">•</span>
-                  <span>文字が溜まる「池」を作ると、美しい溢れが見られます</span>
+                  <span className="text-orange-200 font-mono">•</span>
+                  <span>好きなWebページの文字で自分だけの滝を作成</span>
                 </div>
               </div>
             </CardContent>
