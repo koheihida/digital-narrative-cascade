@@ -261,13 +261,39 @@ function App() {
         // ランダムにエンドポイントを選択
         const randomEndpoint = aozoraEndpoints[Math.floor(Math.random() * aozoraEndpoints.length)]
         
-        // CORSエラーを回避するためプロキシを使用
-        const apiUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(randomEndpoint)
+        // CORSエラーを回避するためプロキシを使用（charset=Shift_JISパラメータ付き）
+        const apiUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(randomEndpoint) + '&charset=Shift_JIS'
           
         const response = await fetch(apiUrl)
         if (response.ok) {
           const proxyData = await response.json()
-          const htmlContent = proxyData.contents
+          let htmlContent = proxyData.contents
+          
+          // 文字化け対策：エンコーディング問題が解決できない場合はフォールバックを使用
+          if (htmlContent && typeof htmlContent === 'string') {
+            // 明らかに文字化けしている場合の検出（多量の文字化けパターンが含まれている）
+            const encodingErrorPatterns = /[â€™â€œâ€ã€€ã€‚ã€ã‚ã„ã†ãˆãŠã‹ãŒã]/g
+            const encodingErrorCount = (htmlContent.match(encodingErrorPatterns) || []).length
+            
+            // 文字化けが多すぎる場合はフォールバックテキストを使用
+            if (encodingErrorCount > 50) {
+              console.warn('エンコーディング問題により多数の文字化けを検出しました。フォールバックテキストを使用します。')
+              setDazaiTexts(FALLBACK_TEXTS)
+              if (currentTextSource === 'dazai') {
+                currentTextRef.current = FALLBACK_TEXTS[0]
+              }
+              return
+            }
+            
+            // 基本的な文字化け修正（最小限）
+            htmlContent = htmlContent
+              .replace(/â€™/g, "'")     // apostrophe
+              .replace(/â€œ/g, '"')     // left double quote
+              .replace(/â€/g, '"')      // right double quote
+              .replace(/ã€€/g, '　')     // full-width space
+              .replace(/ã€‚/g, '。')     // Japanese period
+              .replace(/ã€/g, '、')      // Japanese comma
+          }
           
           // HTMLからテキストを抽出
           const parser = new DOMParser()
