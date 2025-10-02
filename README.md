@@ -1,3 +1,4 @@
+このアプリケーションはClode CodとGitHub Sprakを使用して実装しています。
 # 日本語文字の滝 - Japanese Text Waterfall
 
 太宰治の文学作品から文字が滝のように流れ落ちる、美しく詩的なインタラクティブWebアプリケーションです。
